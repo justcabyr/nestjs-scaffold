@@ -46,5 +46,5 @@ jobs:
             --base main \
             --head develop \
             --title "chore: sync develop to main" \
-            --body "Automated PR to sync develop branch with main branch" \
+            --body "Automated PR to sync develop branch with the main branch" \
             --label "automated pr" --label "sync to main"
