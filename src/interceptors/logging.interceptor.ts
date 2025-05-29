@@ -63,6 +63,7 @@ export class LoggingInterceptor implements NestInterceptor {
               message: error.message,
               statusCode: error.status || 500,
             },
+            errorMessage: error.response.message,
           });
         },
       }),
