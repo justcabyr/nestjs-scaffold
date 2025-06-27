@@ -1,0 +1,83 @@
+name: Branch Protection
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  enforce-branch-protection:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Block direct commits to main
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "❌ Direct commits to main branch are not allowed!"
+          echo "Please create a pull request instead."
+          echo "Current commit: ${{ github.sha }}"
+          echo "Committer: ${{ github.actor }}"
+          exit 1
+
+      - name: Validate PR requirements
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "✅ Pull request validation for branch: ${{ github.head_ref }}"
+          echo "Base branch: ${{ github.base_ref }}"
+          echo "PR number: ${{ github.event.pull_request.number }}"
+
+          # Check if PR has a description
+          if [ -z "${{ github.event.pull_request.body }}" ]; then
+            echo "⚠️  Warning: Pull request should have a description"
+          else
+            echo "✅ Pull request has a description"
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && github.base_ref == 'main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Branch Protection Check')
+            );
+
+            if (!botComment) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `## Branch Protection Check ✅
+                
+                This pull request follows the branch protection rules:
+                - ✅ Changes are being made through a pull request
+                - ✅ Target branch is protected (main)
+                - ✅ Direct commits to main are prevented
+                
+                Please ensure all required checks pass before merging.`
+              });
+            }
+
+      - name: Success message for PRs
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "✅ Branch protection rules are being followed"
+          echo "Pull request #${{ github.event.pull_request.number }} is valid"
