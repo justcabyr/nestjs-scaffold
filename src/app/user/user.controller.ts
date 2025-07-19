@@ -13,6 +13,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
+import { Paginate, PaginateQuery } from 'nestjs-paginate';
 
 @Controller('users')
 export class UserController {
@@ -24,9 +25,14 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
+  // @Get()
+  // findAll(): Promise<User[]> {
+  //   return this.userService.findAll();
+  // }
+
   @Get()
-  findAll(): Promise<User[]> {
-    return this.userService.findAll();
+  public findAll(@Paginate() query: PaginateQuery) {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')
